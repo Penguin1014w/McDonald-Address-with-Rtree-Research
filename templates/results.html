@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>検索結果</title>
+  <style>
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Microsoft Yahei", sans-serif; 
+      margin: 0; 
+      padding: 24px; 
+      background: #F0E8DB;
+      display: flex; 
+      justify-content: center; 
+      align-items: flex-start;
+      min-height: 100vh; 
+    }
+    .container { 
+      background: white; 
+      padding: 24px; 
+      border-radius: 8px; 
+      box-shadow: 0 2px 4px rgba(94, 19, 0, 0.15); 
+      max-width: 1200px; 
+      width: 100%; 
+      border: 1px solid #EBDCBB;
+    }
+    h1 { font-size: 24px; margin-bottom: 12px; color: #5E1300; text-align: center; }
+    .meta { color: #5E1300; margin-bottom: 16px; padding: 12px; background: #EBDCBB; border-radius: 4px; border: 1px solid #BB552F; }
+    .performance { margin-bottom: 20px; padding: 16px; background: #EBDCBB; border-radius: 4px; border-left: 4px solid #BB552F; }
+    .performance-title { font-size: 16px; font-weight: 600; color: #5E1300; margin-bottom: 12px; }
+    .performance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .performance-item { padding: 8px; background: white; border-radius: 4px; border: 1px solid #BB552F; }
+    .performance-label { font-size: 12px; color: #5E1300; margin-bottom: 4px; }
+    .performance-value { font-size: 18px; font-weight: 600; color: #5E1300; }
+    .performance-value.fast { color: #BB552F; }
+    .performance-value.slow { color: #5E1300; }
+    .table-wrapper { overflow-x: auto; margin-top: 16px; max-height: 70vh; overflow-y: auto; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 800px; }
+    th, td { border: 1px solid #BB552F; padding: 12px; vertical-align: top; }
+    th { background: #FFD5BF; text-align: left; font-weight: 600; color: #5E1300; position: sticky; top: 0; z-index: 10; }
+    tbody tr:hover { background: #FFD5BF; }
+    tbody tr:nth-child(even) { background: #F0E8DB; }
+    tbody tr:nth-child(even):hover { background: #EBDCBB; }
+    @media (max-width: 768px) {
+      .container { padding: 16px; margin: 12px; }
+    }
+    .yes { color: #BB552F; font-weight: 600; }
+    .no { color: #5E1300; font-weight: 600; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; }
+    .error { color: #5E1300; margin-bottom: 16px; padding: 12px; background: #FFD5BF; border-radius: 4px; border-left: 4px solid #5E1300; }
+    .back-link { display: inline-block; margin-top: 20px; padding: 8px 16px; background: #BB552F; color: white; text-decoration: none; border-radius: 4px; }
+    .back-link:hover { background: #5E1300; }
+    ul { margin: 0; padding-left: 18px; }
+    li { margin: 4px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>検索結果</h1>
+    {% if station_query %}
+    <div class="meta">
+      <strong>検索条件：</strong>半径 {{ radius_m|int }} m、駅名に「{{ station_query }}」を含む
+    </div>
+    {% endif %}
+
+    {% if error %}
+      <div class="error">
+        {{ error }}
+        <div style="margin-top: 8px;">
+          <a href="/" style="color: #5E1300; text-decoration: underline;">検索ページに戻る</a>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if performance %}
+    <div class="performance">
+      <div class="performance-title">⚡ パフォーマンス比較（店舗数 {{ performance.total_points }} 件）</div>
+      <div class="performance-grid">
+        <div class="performance-item">
+          <div class="performance-label">R-Tree 検索時間</div>
+          <div class="performance-value fast">{{ performance.rtree_time_ms }} ms</div>
+        </div>
+        <div class="performance-item">
+          <div class="performance-label">線形探索の時間</div>
+          <div class="performance-value slow">{{ performance.linear_time_ms }} ms</div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if results and results|length > 0 %}
+    <div class="table-wrapper">
+    <table>
+    <thead>
+      <tr>
+        <th>駅名</th>
+        <th>駅の座標</th>
+        <th>店舗数</th>
+        <th>近くのマクドナルド（距離昇順）</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in results %}
+        <tr>
+          <td>{{ row.station_name }}</td>
+          <td class="mono">{{ "%.6f"|format(row.station_lat) }}, {{ "%.6f"|format(row.station_lon) }}</td>
+          <td class="{{ 'yes' if row.has_mc else 'no' }}">{{ row.match_count }} 件</td>
+          <td>
+            {% if row.matches and row.matches|length > 0 %}
+              <ul style="margin:0; padding-left:18px;">
+              {% for mc in row.matches %}
+                <li style="margin-bottom: 8px;">
+                  <strong>{{ mc.name if mc.name else '名称不明' }}</strong><br>
+                  <span style="font-size: 11px; color: #666;">{{ mc.address if mc.address else '住所なし' }}</span><br>
+                  <span class="mono" style="font-size: 11px; color: #666;">座標: {{ "%.6f"|format(mc.lat) }}, {{ "%.6f"|format(mc.lon) }} | 距離: <strong style="color: #BB552F;">{{ mc.distance_m|int }} m</strong></span>
+                </li>
+              {% endfor %}
+              </ul>
+            {% else %}
+              <span style="color: #999;">なし</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+    </div>
+    {% else %}
+    <div style="padding: 24px; text-align: center; color: #5E1300;">
+      該当する結果が見つかりませんでした
+    </div>
+    {% endif %}
+    <a href="/" class="back-link">検索ページへ戻る</a>
+  </div>
+</body>
+</html>

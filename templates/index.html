@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>駅周辺のマクドナルド店舗検索</title>
+  <style>
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Microsoft Yahei", sans-serif; 
+      margin: 0; 
+      padding: 24px; 
+      background: #F0E8DB;
+      display: flex; 
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container { 
+      background: white; 
+      padding: 32px; 
+      border-radius: 8px; 
+      max-width: 600px; 
+      width: 100%;
+      box-shadow: 0 2px 8px rgba(94, 19, 0, 0.15);
+      border: 1px solid #EBDCBB;
+      position: relative;
+    }
+    h1 { font-size: 24px; margin-bottom: 24px; color: #5E1300; text-align: center; }
+    form { display: grid; grid-template-columns: 120px 1fr; gap: 16px 16px; }
+    label { align-self: center; font-weight: 500; color: #5E1300; }
+    input, button { font-size: 14px; padding: 10px 12px; border: 1px solid #BB552F; border-radius: 4px; }
+    input:focus { outline: none; border-color: #BB552F; box-shadow: 0 0 0 2px rgba(187, 85, 47, 0.2); }
+    button { background: #BB552F; color: white; border: none; cursor: pointer; font-weight: 500; grid-column: 1 / -1; padding: 12px 24px; margin-top: 8px; }
+    button:hover { background: #5E1300; }
+    .meta { 
+      position: absolute; 
+      bottom: 8px; 
+      right: 12px; 
+      font-size: 11px; 
+      color: #888; 
+      text-align: right;
+    }
+    .help-text { font-size: 12px; color: #888; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🍔駅周辺のマクドナルド店舗検索🍟</h1>
+
+    <form action="/query" method="get" id="searchForm">
+      <label for="station_query">駅名</label>
+      <input id="station_query" name="station_query" type="text" placeholder="例：豊洲" required title="駅名を入力してください" />
+      <label for="radius_m">検索半径（メートル）</label>
+      <input id="radius_m" name="radius_m" type="number" step="50" min="50" max="10000" value="500" required title="検索半径を入力してください" />
+      <button type="submit">検索</button>
+    </form>
+    <div class="meta">
+      駅数：{{ station_count }} ・ 店舗数：{{ mc_count }}
+    </div>
+    <script>
+      // カスタムバリデーションメッセージを日本語に設定
+      document.getElementById('searchForm').addEventListener('submit', function(e) {
+        var stationInput = document.getElementById('station_query');
+        var radiusInput = document.getElementById('radius_m');
+        
+        // 駅名のバリデーション
+        if (!stationInput.value.trim()) {
+          stationInput.setCustomValidity('駅名を入力してください');
+        } else {
+          stationInput.setCustomValidity('');
+        }
+        
+        // 検索半径のバリデーション
+        if (!radiusInput.value || radiusInput.value <= 0) {
+          radiusInput.setCustomValidity('検索半径を入力してください（50-10000メートル）');
+        } else {
+          radiusInput.setCustomValidity('');
+        }
+      });
+      
+      // 入力時にバリデーションメッセージをクリア
+      document.getElementById('station_query').addEventListener('input', function() {
+        this.setCustomValidity('');
+      });
+      document.getElementById('radius_m').addEventListener('input', function() {
+        this.setCustomValidity('');
+      });
+    </script>
+  </div>
+</body>
+</html>
+
+
